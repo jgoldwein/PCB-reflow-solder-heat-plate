@@ -210,8 +210,11 @@ void setup() {
     pinMode(TEMP_PIN, INPUT);
     pinMode(VCC_PIN, INPUT);
     pinMode(LED_GREEN_PIN, OUTPUT);
+    pinMode(LED_RED_PIN, OUTPUT);
 
     digitalWrite(LED_GREEN_PIN, HIGH);
+    digitalWrite(LED_RED_PIN, HIGH);
+    delay(500);
     analogWrite(MOSFET_PIN, 255); // VERY IMPORTANT, DONT CHANGE!
 
     attachInterrupt(DNSW_PIN, dnsw_change_isr, FALLING);
@@ -326,7 +329,9 @@ inline int getMaxTempIndex(void) { return EEPROM.read(TEMP_INDEX_ADDR) % sizeof(
 void showLogo() {
     unsigned long start_time = millis();
     display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
-    while (start_time + 2000 > millis()) {
+    digitalWrite(LED_GREEN_PIN, LOW);
+    digitalWrite(LED_RED_PIN, HIGH);
+    while (start_time + 5000 > millis()) {
         display.clearDisplay();
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
@@ -344,8 +349,22 @@ void showLogo() {
         if (cur_button == BUTTONS_BOTH_PRESS) {
             doSetup();
             return;
+        } else if (cur_button == BUTTONS_UP_PRESS) {
+            digitalWrite(LED_GREEN_PIN, HIGH);
+            digitalWrite(LED_RED_PIN, LOW);
+        } else if (cur_button == BUTTONS_DN_PRESS) {
+            digitalWrite(LED_GREEN_PIN, LOW);
+            digitalWrite(LED_RED_PIN, HIGH);
         }
     }
+    digitalWrite(LED_GREEN_PIN, HIGH);
+    digitalWrite(LED_RED_PIN, LOW);
+    delay(500);
+    digitalWrite(LED_GREEN_PIN, LOW);
+    digitalWrite(LED_RED_PIN, HIGH);
+    delay(500);
+    digitalWrite(LED_GREEN_PIN, HIGH);
+    digitalWrite(LED_RED_PIN, LOW);
 }
 
 inline void doSetup() {
@@ -718,6 +737,8 @@ void stepPID(float target_temp, float current_temp, float last_temp, float dt, i
 void inline heatAnimate(int &x, int &y, float v, float t, float target) {
     // Heat Animate Control
     display.clearDisplay();
+    digitalWrite(LED_GREEN_PIN, LOW);
+    digitalWrite(LED_RED_PIN, HIGH);
     display.drawBitmap(0, 3, heat_animate, heat_animate_width, heat_animate_height, SSD1306_WHITE);
     display.drawBitmap(112, 3, heat_animate, heat_animate_width, heat_animate_height,
                        SSD1306_WHITE);
@@ -822,6 +843,10 @@ void coolDown() {
             display.setCursor(49, 22);
         } else {
             display.setCursor(52, 22);
+        }
+        if (t <= 25) {
+            digitalWrite(LED_GREEN_PIN, HIGH);
+            digitalWrite(LED_RED_PIN, LOW);
         }
         display.print(F("~"));
         display.print(t, 0);

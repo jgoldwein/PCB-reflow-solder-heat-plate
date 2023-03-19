@@ -78,6 +78,7 @@ volatile unsigned long up_state_change_time = 0;
 volatile unsigned long down_state_change_time = 0;
 
 // Temperature Info
+// Made temperature selection a tad more granular and lowered maximum since it destroys heatbed at the higher temperatures
 byte max_temp_array[] = { 140, 145, 150, 155, 160 };
 byte max_temp_index = 0;
 #define MAX_RESISTANCE 10.0
@@ -395,6 +396,7 @@ void showLogo() {
 inline void doSetup() {
   debugprintln("Performing setup");
   // TODO(HEIDT) show an info screen if we're doing firstime setup or if memory is corrupted
+  
   float t = getTemp();
   ledIndicate(t);
   getResistanceFromUser();
@@ -637,7 +639,6 @@ inline void showHeatMenu(byte max_temp) {
 bool heat(byte max_temp, int profile_index) {
   // Heating Display
   showHeatMenu(max_temp);
-  // set Hot/Cold LED
   delay(3000);
 
   float t;  // Used to store current temperature

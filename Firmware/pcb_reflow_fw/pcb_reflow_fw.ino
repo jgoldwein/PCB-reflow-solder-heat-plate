@@ -78,7 +78,7 @@ volatile unsigned long up_state_change_time = 0;
 volatile unsigned long down_state_change_time = 0;
 
 // Temperature Info
-byte max_temp_array[] = { 140, 150, 160, 170, 180 };
+byte max_temp_array[] = { 140, 145, 150, 155, 160 };
 byte max_temp_index = 0;
 #define MAX_RESISTANCE 10.0
 float bed_resistance = 1.88;
@@ -177,6 +177,7 @@ const static solder_profile_t profiles[NUM_PROFILES] = {
 #define TARGET_TEMP_THRESHOLD 2.5
 
 // PID values
+
 float kI = 0.2;
 float kD = 0.25;
 float kP = 8.0;
@@ -370,14 +371,17 @@ void showLogo() {
     if (cur_button == BUTTONS_BOTH_PRESS) {
       doSetup();
       return;
+    // If we press up button during boot, green LED lights
     } else if (cur_button == BUTTONS_UP_PRESS) {
       digitalWrite(LED_GREEN_PIN, HIGH);
       digitalWrite(LED_RED_PIN, LOW);
+    // If we press down button during boot, red LED lights
     } else if (cur_button == BUTTONS_DN_PRESS) {
       digitalWrite(LED_GREEN_PIN, LOW);
       digitalWrite(LED_RED_PIN, HIGH);
     }
   }
+  // If we press no button during boot, green LED flash, red flash, then green 
   digitalWrite(LED_GREEN_PIN, HIGH);
   digitalWrite(LED_RED_PIN, LOW);
   delay(500);
@@ -391,7 +395,8 @@ void showLogo() {
 inline void doSetup() {
   debugprintln("Performing setup");
   // TODO(HEIDT) show an info screen if we're doing firstime setup or if memory is corrupted
-
+  float t = getTemp();
+  ledIndicate(t);
   getResistanceFromUser();
   // TODO(HEIDT) do a temperature module setup here
 
@@ -429,7 +434,7 @@ inline void getResistanceFromUser() {
 inline void mainMenu() {
   // Debounce
   menu_state_t cur_state = MENU_IDLE;
-   int x = 0;    // Display change counter
+  int x = 0;    // Display change counter
   int y = 200;  // Display change max (modulused below)
   uint8_t profile_index = 0;
 
@@ -498,7 +503,7 @@ inline void mainMenu() {
   }
 }
 
-#define BUTTON_PRESS_TIME 50
+#define BUTTON_PRESS_TIME 100
 buttons_state_t getButtonsState() {
   single_button_state_t button_dn;
   single_button_state_t button_up;
@@ -600,7 +605,7 @@ inline void showMainMenuLeft(int &x, int &y) {
     display.print(F(" Temperature"));
   } else {
     display.setCursor(3, 4);
-    display.print(F("HOLD  BUTTONS"));
+    display.print(F("BOTH  BUTTONS"));
     display.drawLine(3, 12, 79, 12, SSD1306_WHITE);
     display.setCursor(3, 18);
     display.print(F("Begin Heating"));
@@ -622,8 +627,6 @@ inline void showHeatMenu(byte max_temp) {
   display.setTextSize(2);
   display.setCursor(22, 4);
   display.print(F("HEATING"));
-  // set Hot/Cold LED
-//  ledIndicate(100.00);
   display.setTextSize(1);
   display.setCursor(52, 24);
   display.print(max_temp);
@@ -745,7 +748,8 @@ void evaluate_heat() {
 }
 
 void ledIndicate(float c) {
-  if (c < 45.00) {
+  // turn LED red when temperature equals/exceeds 45.00, and green when temp is less than 45.00
+    if (c < 45.00) {
     digitalWrite(LED_GREEN_PIN, HIGH);
     digitalWrite(LED_RED_PIN, LOW);
   } else if (c >= 45.00) {
@@ -793,8 +797,9 @@ void inline heatAnimate(int &x, int &y, float v, float t, float target) {
   display.print(F("~"));
   display.print(v, 1);
   display.print(F("V"));
-  // when the heating begins, always turn on the RED led
-  // since the temperature indicator lags behind the actual temperature
+  //  SAFETY ISSUE - HOT PLATE!
+  // When the heating begins, always turn on the RED led
+  // since the temperature indicator lags behind the actual temperature.
   ledIndicate(100);
   if (t >= 100) {
     display.setCursor(63, 24);
@@ -871,7 +876,6 @@ void coolDown() {
   float t = getTemp();  // Used to store current temperature
 
   // Wait to return on any button press, or TEMP_PIN below threshold
-  // thrshold is around body temperature
   while (getButtonsState() == BUTTONS_NO_PRESS && t > 45.00) {
     ledIndicate(t);
     display.clearDisplay();
